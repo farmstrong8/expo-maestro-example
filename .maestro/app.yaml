@@ -1,0 +1,19 @@
+appId: com.expomaestroexample.app
+---
+- launchApp
+- tapOn:
+      id: "increment-button"
+- repeat:
+      times: 10
+      commands:
+          - tapOn:
+                id: "increment-button"
+- assertVisible:
+      id: "special-title"
+- repeat:
+      times: 5
+      commands:
+          - tapOn:
+                id: "decrement-button"
+- assertNotVisible:
+      id: "special-title"
