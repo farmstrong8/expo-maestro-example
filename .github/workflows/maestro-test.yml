@@ -11,12 +11,7 @@ on:
                     - android
 
 env:
-    APP_FILE: |
-        if [ "${{ github.event.inputs.platform }}" = "android" ]; then
-          TEST_BUILD.apk
-        else
-          TEST_BUILD.app
-        fi
+    APP_FILE: ${{ github.event.inputs.platform == 'ios' && 'TEST_BUILD_IOS.app' || 'TEST_BUILD_ANDROID.apk' }}
 
 jobs:
     run-tests:
@@ -38,15 +33,16 @@ jobs:
               with:
                   eas-version: latest
                   token: ${{ secrets.EXPO_TOKEN }}
+                  packager: npm
 
-            - name: 📦 Install dependencies
+            - name: 📦 Install Dependencies
               run: npm install
 
-            - name: 🚀 Download Android Test build
+            - name: 🚀 Download App File
               run: eas build:list --json --limit=1 --platform=${{ github.event.inputs.platform }} --buildProfile=test --non-interactive | jq '.[0].artifacts.buildUrl' | xargs -I {} wget -O ${{ env.APP_FILE }} {}
               shell: bash
 
-            - name: 📝 Run Maestro tests
+            - name: 📝 Run Maestro Tests
               uses: mobile-dev-inc/action-maestro-cloud@v1.6.0
               with:
                   api-key: ${{ secrets.MAESTRO_CLOUD_API_KEY }}
