@@ -44,7 +44,7 @@ jobs:
               shell: bash
 
             - name: Extract App File
-              run: mkdir -p ./${{ env.MAESTRO_APP_FILE }} && tar -xzf ${{ env.DOWNLOAD_FILE }} -C ./${{ env.MAESTRO_APP_FILE }} --strip-component=1
+              run: mkdir -p ./${{ env.MAESTRO_APP_FILE }} && tar -xzf ${{ env.DOWNLOAD_APP_FILE }} -C ./${{ env.MAESTRO_APP_FILE }} --strip-component=1
               shell: bash
               if: ${{ github.event.inputs.platform == 'ios' }}
 
