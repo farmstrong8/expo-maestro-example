@@ -1,6 +1,7 @@
 name: Maestro Tests
+
 on:
-    workflow_run:
+    workflow_dispatch:
         inputs:
             platform:
                 type: choice
