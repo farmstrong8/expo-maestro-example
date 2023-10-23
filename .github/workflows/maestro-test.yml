@@ -1,0 +1,60 @@
+name: Maestro Tests
+on:
+    workflow_run:
+        inputs:
+            platform:
+                type: choice
+                description: which platform to target
+                options:
+                    - ios
+                    - android
+
+env:
+    APP_FILE: |
+        if [ "${{ github.event.inputs.platform }}" = "android" ]; then
+          TEST_BUILD.apk
+        else
+          TEST_BUILD.app
+        fi
+
+jobs:
+    run-tests:
+        name: Trigger for Maestro tests
+        timeout-minutes: 15
+        runs-on: ubuntu-latest
+        steps:
+            - name: 🏗 Setup repo
+              uses: actions/checkout@v3
+
+            - name: 🚚 Setup Node
+              uses: actions/setup-node@v3
+              with:
+                  node-version: 18.x
+                  cache: npm
+
+            - name: 🛠️ Setup EAS
+              uses: expo/expo-github-action@v8
+              with:
+                  eas-version: latest
+                  token: ${{ secrets.EXPO_TOKEN }}
+
+            - name: 📦 Install dependencies
+              run: npm install
+
+            - name: 🚀 Download Android Test build
+              run: eas build:list --json --limit=1 --platform=${{ github.event.inputs.platform }} --buildProfile=test --non-interactive | jq '.[0].artifacts.buildUrl' | xargs -I {} wget -O TEST_BUILD.${{ }} {}
+              shell: bash
+
+            - name: 📝 Run Maestro tests
+              uses: mobile-dev-inc/action-maestro-cloud@v1.6.0
+              with:
+                  api-key: ${{ secrets.MAESTRO_CLOUD_API_KEY }}
+                  app-file: ${{ env.APP_FILE }}
+
+            - name: Access Outputs
+              if: success()
+              run: |
+                  echo "Console URL: ${{ steps.upload.outputs.MAESTRO_CLOUD_CONSOLE_URL }}"
+                  echo "Flow Results: ${{ steps.upload.outputs.MAESTRO_CLOUD_FLOW_RESULTS }}"
+                  echo "Upload Status: ${{ steps.upload.outputs.MAESTRO_CLOUD_UPLOAD_STATUS }}"
+                  echo "App Binary ID:: ${{ steps.upload.outputs.MAESTRO_CLOUD_APP_BINARY_ID }}"
