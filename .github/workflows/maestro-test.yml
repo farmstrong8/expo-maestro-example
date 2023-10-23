@@ -11,7 +11,7 @@ on:
                     - android
 
 env:
-    MAESTRO_APP_FILE: ${{ github.event.inputs.platform == 'ios' && 'test-build-ios.app' || 'test-build-android.apk' }}
+    MAESTRO_APP_FILE: ${{ github.event.inputs.platform == 'ios' && 'test-build-ios.tar.gz' || 'test-build-android.apk' }}
 
 jobs:
     run-tests:
