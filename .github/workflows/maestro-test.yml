@@ -43,7 +43,7 @@ jobs:
               run: npm install
 
             - name: 🚀 Download Android Test build
-              run: eas build:list --json --limit=1 --platform=${{ github.event.inputs.platform }} --buildProfile=test --non-interactive | jq '.[0].artifacts.buildUrl' | xargs -I {} wget -O TEST_BUILD.${{ }} {}
+              run: eas build:list --json --limit=1 --platform=${{ github.event.inputs.platform }} --buildProfile=test --non-interactive | jq '.[0].artifacts.buildUrl' | xargs -I {} wget -O ${{ env.APP_FILE }} {}
               shell: bash
 
             - name: 📝 Run Maestro tests
