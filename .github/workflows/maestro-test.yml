@@ -11,7 +11,8 @@ on:
                     - android
 
 env:
-    MAESTRO_APP_FILE: ${{ github.event.inputs.platform == 'ios' && 'test-build-ios.tar.gz' || 'test-build-android.apk' }}
+    MAESTRO_APP_FILE: ${{ github.event.inputs.platform == 'ios' && 'TEST_BUILD_IOS.app' || 'TEST_BUILD_ANDROID.apk' }}
+    DOWNLOAD_APP_FILE: ${{ github.event.inputs.platform == 'ios' && 'TEST_BUILD_IOS.tar.gz' || 'TEST_BUILD_ANDROID.apk' }}
 
 jobs:
     run-tests:
@@ -39,10 +40,16 @@ jobs:
               run: npm install
 
             - name: 🚀 Download App File
-              run: eas build:list --json --limit=1 --platform=${{ github.event.inputs.platform }} --buildProfile=test --non-interactive | jq '.[0].artifacts.buildUrl' | xargs -I {} wget -O ${{ env.MAESTRO_APP_FILE }} {}
+              run: eas build:list --json --limit=1 --platform=${{ github.event.inputs.platform }} --buildProfile=test --non-interactive | jq '.[0].artifacts.buildUrl' | xargs -I {} wget -O ${{ env.DOWNLOAD_APP_FILE }} {}
               shell: bash
 
-            - name: 📝 Run Maestro Tests
+            - name: Extract App File
+              run: mkdir -p ./${{ env.MAESTRO_APP_FILE }} && tar -xzf ${{ env.DOWNLOAD_FILE }} -C ./${{ env.MAESTRO_APP_FILE }} --strip-component=1
+              shell: bash
+              if: ${{ github.event.inputs.platform == 'ios' }}
+
+            - id: upload
+              name: 📝 Run Maestro Tests
               uses: mobile-dev-inc/action-maestro-cloud@v1.6.0
               with:
                   api-key: ${{ secrets.MAESTRO_CLOUD_API_KEY }}
