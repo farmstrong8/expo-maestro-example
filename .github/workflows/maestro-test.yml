@@ -2,17 +2,12 @@ name: Maestro Tests
 
 on:
     workflow_dispatch:
-        inputs:
-            platform:
-                type: choice
-                description: which platform to target
-                options:
-                    - ios
-                    - android
 
 env:
-    MAESTRO_APP_FILE: ${{ github.event.inputs.platform == 'ios' && 'TEST_BUILD_IOS.app' || 'TEST_BUILD_ANDROID.apk' }}
-    DOWNLOAD_APP_FILE: ${{ github.event.inputs.platform == 'ios' && 'TEST_BUILD_IOS.tar.gz' || 'TEST_BUILD_ANDROID.apk' }}
+    MAESTRO_ANDROID_APP_FILE: "TEST_BUILD_ANDROID.apk"
+    MAESTRO_IOS_APP_FILE: "TEST_BUILD_IOS.app"
+    ANDROID_DOWNLOAD_FILE: "TEST_BUILD_ANDROID.apk"
+    IOS_DOWNLOAD_FILE: "TEST_BUILD_IOS.tar.gz"
 
 jobs:
     run-tests:
@@ -39,26 +34,42 @@ jobs:
             - name: 📦 Install Dependencies
               run: npm install
 
-            - name: 🚀 Download App File
-              run: eas build:list --json --limit=1 --platform=${{ github.event.inputs.platform }} --buildProfile=test --non-interactive | jq '.[0].artifacts.buildUrl' | xargs -I {} wget -O ${{ env.DOWNLOAD_APP_FILE }} {}
+            - name: 🤖 Download Android App File
+              run: eas build:list --json --limit=1 --platform=android --buildProfile=test --non-interactive | jq '.[0].artifacts.buildUrl' | xargs -I {} wget -O ${{ env.ANDROID_DOWNLOAD_FILE }} {}
               shell: bash
 
-            - name: Extract App File
-              run: mkdir -p ./${{ env.MAESTRO_APP_FILE }} && tar -xzf ${{ env.DOWNLOAD_APP_FILE }} -C ./${{ env.MAESTRO_APP_FILE }} --strip-component=1
-              shell: bash
-              if: ${{ github.event.inputs.platform == 'ios' }}
+            - name:  Download iOS App File
+              run: eas build:list --json --limit=1 --platform=ios --buildProfile=test --non-interactive | jq '.[0].artifacts.buildUrl' | xargs -I {} wget -O ${{ env.IOS_DOWNLOAD_FILE }} {}
 
-            - id: upload
-              name: 📝 Run Maestro Tests
+            - name: 📦 Extract iOS App File
+              run: mkdir -p ./${{ env.MAESTRO_IOS_APP_FILE }} && tar -xzf ${{ env.IOS_DOWNLOAD_FILE }} -C ./${{ env.MAESTRO_IOS_APP_FILE }} --strip-component=1
+              shell: bash
+
+            - id: android-upload
+              name: 📝 Run Maestro Android Tests
               uses: mobile-dev-inc/action-maestro-cloud@v1.6.0
               with:
                   api-key: ${{ secrets.MAESTRO_CLOUD_API_KEY }}
-                  app-file: ${{ env.MAESTRO_APP_FILE }}
+                  app-file: ${{ env.MAESTRO_ANDROID_APP_FILE }}
+
+            - id: ios-upload
+              name: 📝 Run Maestro iOS Tests
+              uses: mobile-dev-inc/action-maestro-cloud@v1.6.0
+              with:
+                  api-key: ${{ secrets.MAESTRO_CLOUD_API_KEY }}
+                  app-file: ${{ env.MAESTRO_IOS_APP_FILE }}
 
             - name: Access Outputs
               if: success()
               run: |
-                  echo "Console URL: ${{ steps.upload.outputs.MAESTRO_CLOUD_CONSOLE_URL }}"
-                  echo "Flow Results: ${{ steps.upload.outputs.MAESTRO_CLOUD_FLOW_RESULTS }}"
-                  echo "Upload Status: ${{ steps.upload.outputs.MAESTRO_CLOUD_UPLOAD_STATUS }}"
-                  echo "App Binary ID:: ${{ steps.upload.outputs.MAESTRO_CLOUD_APP_BINARY_ID }}"
+                  echo "Android Result"
+                  echo "Console URL: ${{ steps.android-upload.outputs.MAESTRO_CLOUD_CONSOLE_URL }}"
+                  echo "Flow Results: ${{ steps.android-upload.outputs.MAESTRO_CLOUD_FLOW_RESULTS }}"
+                  echo "Upload Status: ${{ steps.android-upload.outputs.MAESTRO_CLOUD_UPLOAD_STATUS }}"
+                  echo "App Binary ID:: ${{ steps.android-upload.outputs.MAESTRO_CLOUD_APP_BINARY_ID }}"
+
+                  echo "iOS Result"
+                  echo "Console URL: ${{ steps.ios-upload.outputs.MAESTRO_CLOUD_CONSOLE_URL }}"
+                  echo "Flow Results: ${{ steps.ios-upload.outputs.MAESTRO_CLOUD_FLOW_RESULTS }}"
+                  echo "Upload Status: ${{ steps.ios-upload.outputs.MAESTRO_CLOUD_UPLOAD_STATUS }}"
+                  echo "App Binary ID:: ${{ steps.ios-upload.outputs.MAESTRO_CLOUD_APP_BINARY_ID }}"
